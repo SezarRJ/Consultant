@@ -92,6 +92,15 @@ export interface Playbook {
   description: string;
 }
 
+// BUG 6 FIX: added clientId to ActivityLog items so Agents page can filter by selected client
+export interface ActivityLogItem {
+  id: string;
+  action: string;
+  timestamp: string;
+  type: string;
+  clientId?: string;
+}
+
 export const clients: Client[] = [
   {
     id: '1',
@@ -210,11 +219,17 @@ export const regionalData = [
   { name: 'West', value: 18, fill: 'hsl(0, 84%, 50%)' },
 ];
 
-export const activityLog = [
-  { id: '1', action: 'AI Analysis completed for ABC Distribution', timestamp: '2026-03-11T08:30:00Z', type: 'analysis' },
-  { id: '2', action: 'New document uploaded: Q4 Financial Report', timestamp: '2026-03-11T07:45:00Z', type: 'document' },
-  { id: '3', action: 'Strategy Option C accepted by Sarah Chen', timestamp: '2026-03-10T16:00:00Z', type: 'strategy' },
-  { id: '4', action: 'Executive Summary generated for ABC Distribution', timestamp: '2026-03-10T14:00:00Z', type: 'deliverable' },
-  { id: '5', action: 'Risk Assessment Agent completed analysis', timestamp: '2026-03-10T11:00:00Z', type: 'agent' },
-  { id: '6', action: 'New insight: Revenue Decline Detected', timestamp: '2026-03-10T09:00:00Z', type: 'insight' },
+// BUG 6 FIX: added clientId to each activity item for per-client filtering in Agents page
+export const activityLog: ActivityLogItem[] = [
+  { id: '1', action: 'AI Analysis completed for ABC Distribution', timestamp: '2026-03-11T08:30:00Z', type: 'analysis', clientId: '1' },
+  { id: '2', action: 'New document uploaded: Q4 Financial Report', timestamp: '2026-03-11T07:45:00Z', type: 'document', clientId: '1' },
+  { id: '3', action: 'Strategy Option C accepted by Sarah Chen', timestamp: '2026-03-10T16:00:00Z', type: 'strategy', clientId: '1' },
+  { id: '4', action: 'Executive Summary generated for ABC Distribution', timestamp: '2026-03-10T14:00:00Z', type: 'deliverable', clientId: '1' },
+  { id: '5', action: 'Risk Assessment Agent completed analysis', timestamp: '2026-03-10T11:00:00Z', type: 'agent', clientId: '1' },
+  { id: '6', action: 'New insight: Revenue Decline Detected', timestamp: '2026-03-10T09:00:00Z', type: 'insight', clientId: '1' },
+  { id: '7', action: 'Market Intelligence Agent scanned XYZ Manufacturing', timestamp: '2026-03-11T06:00:00Z', type: 'agent', clientId: '2' },
+  { id: '8', action: 'Manufacturing KPIs Q1 document processed', timestamp: '2026-03-10T15:00:00Z', type: 'document', clientId: '2' },
+  { id: '9', action: 'Supply Chain Risk insight generated', timestamp: '2026-03-10T11:00:00Z', type: 'insight', clientId: '2' },
+  { id: '10', action: 'Operational Review started for Retail Plus Co', timestamp: '2026-03-09T10:00:00Z', type: 'analysis', clientId: '3' },
+  { id: '11', action: 'Customer churn spike detected for Retail Plus Co', timestamp: '2026-03-09T09:30:00Z', type: 'insight', clientId: '3' },
 ];
