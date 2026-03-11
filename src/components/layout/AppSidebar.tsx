@@ -1,3 +1,6 @@
+// BUG 2 FIX: pathname.startsWith() replaced with exact match OR startsWith(url + "/") pattern
+// BUG 3 FIX: removed activeClassName from NavLink - SidebarMenuButton isActive handles all active styling
+//            Having both caused double-active style conflicts (two different classes applied simultaneously)
 import { Brain, LayoutDashboard, Users, BookOpen, Bot, Lightbulb, FileText, Settings } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
@@ -21,6 +24,12 @@ const navItems = [
   { title: "Deliverables", url: "/deliverables", icon: FileText },
   { title: "Settings", url: "/settings", icon: Settings },
 ];
+
+// BUG 2 FIX: precise active check — exact match OR child route (url + "/")
+const isRouteActive = (itemUrl: string, pathname: string): boolean => {
+  if (itemUrl === "/") return pathname === "/";
+  return pathname === itemUrl || pathname.startsWith(itemUrl + "/");
+};
 
 export function AppSidebar() {
   const { state } = useSidebar();
@@ -48,19 +57,15 @@ export function AppSidebar() {
             <SidebarMenu>
               {navItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
+                  {/* BUG 3 FIX: isActive only on SidebarMenuButton — removed conflicting activeClassName from NavLink */}
                   <SidebarMenuButton
                     asChild
-                    isActive={
-                      item.url === "/"
-                        ? location.pathname === "/"
-                        : location.pathname.startsWith(item.url)
-                    }
+                    isActive={isRouteActive(item.url, location.pathname)}
                   >
                     <NavLink
                       to={item.url}
                       end={item.url === "/"}
                       className="hover:bg-sidebar-accent"
-                      activeClassName="bg-sidebar-accent text-sidebar-primary font-medium"
                     >
                       <item.icon className="mr-2 h-4 w-4" />
                       {!collapsed && <span>{item.title}</span>}
