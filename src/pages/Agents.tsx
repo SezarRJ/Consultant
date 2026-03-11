@@ -1,5 +1,3 @@
-// BUG 6 FIX: selectedClient now actually filters agents and activity log.
-//            Previously the Select dropdown changed state but had zero effect on displayed data.
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -9,25 +7,52 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { agents, clients, activityLog } from "@/data/mockData";
-import { Bot, Eye, Clock, CheckCircle, AlertCircle, Loader2 } from "lucide-react";
+import { FeedbackBar } from "@/components/feedback/FeedbackBar";
+import { useRunAnalysis } from "@/hooks/useAnalysis";
+import { useCalibration } from "@/hooks/useFeedback";
+import { Bot, Eye, Clock, CheckCircle, AlertCircle, Loader2, Activity, Cpu, ListChecks, Target } from "lucide-react";
+import { toast } from "sonner";
 
 const statusConfig: Record<string, { icon: typeof CheckCircle; color: string; dot: string }> = {
-  complete: { icon: CheckCircle, color: "text-success", dot: "bg-success" },
-  running: { icon: Loader2, color: "text-primary", dot: "bg-primary animate-pulse-dot" },
-  queued: { icon: Clock, color: "text-muted-foreground", dot: "bg-muted-foreground" },
-  error: { icon: AlertCircle, color: "text-destructive", dot: "bg-destructive" },
+  complete: { icon: CheckCircle, color: "text-success",           dot: "bg-success"                   },
+  running:  { icon: Loader2,     color: "text-primary",           dot: "bg-primary animate-pulse"      },
+  queued:   { icon: Clock,       color: "text-muted-foreground",  dot: "bg-muted-foreground"           },
+  error:    { icon: AlertCircle, color: "text-destructive",       dot: "bg-destructive"                },
 };
 
 export default function Agents() {
   const [selectedClient, setSelectedClient] = useState(clients[0].id);
 
-  // BUG 6 FIX: filter activity log by selected client so the dropdown actually does something
   const filteredActivity = activityLog.filter(
-    (item) => item.clientId === selectedClient || !item.clientId
+    (item) => item.clientId === selectedClient
   );
+
+  // G-14 FIX: stats computed from agent data
+  const totalAgents  = agents.length;
+  const activeNow    = agents.filter((a) => a.status === "running").length;
+  const tasksToday   = activityLog.filter((a) => {
+    const today = new Date().toDateString();
+    return new Date(a.timestamp).toDateString() === today;
+  }).length;
+
+  // G-14 FIX: avg accuracy from calibration hook
+  const { data: calibration } = useCalibration();
+  const avgAccuracy = calibration?.agents
+    ? Math.round(calibration.agents.reduce((sum: number, a: any) => sum + (a.accuracy ?? 0), 0) / calibration.agents.length)
+    : 84; // fallback value while backend isn't connected
+
+  // G-16 FIX: run analysis button
+  const runAnalysis = useRunAnalysis(selectedClient);
+  const handleRunAnalysis = () => {
+    runAnalysis.mutate({}, {
+      onSuccess: () => toast.success("AI Analysis started for " + clients.find((c) => c.id === selectedClient)?.name),
+      onError:   () => toast.error("Failed to start analysis."),
+    });
+  };
 
   return (
     <div className="space-y-6">
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">AI Agent Workspace</h1>
@@ -38,16 +63,54 @@ export default function Agents() {
             </span>
           </p>
         </div>
-        <Select value={selectedClient} onValueChange={setSelectedClient}>
-          <SelectTrigger className="w-[200px]">
-            <SelectValue placeholder="Select client" />
-          </SelectTrigger>
-          <SelectContent>
-            {clients.map((c) => (
-              <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+
+        <div className="flex items-center gap-2">
+          {/* G-16 FIX: run analysis button */}
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={handleRunAnalysis}
+            disabled={runAnalysis.isPending}
+          >
+            {runAnalysis.isPending
+              ? <><Loader2 className="mr-1 h-3 w-3 animate-spin" /> Running...</>
+              : <><Bot className="mr-1 h-3 w-3" /> Run Analysis</>
+            }
+          </Button>
+
+          <Select value={selectedClient} onValueChange={setSelectedClient}>
+            <SelectTrigger className="w-[200px]">
+              <SelectValue placeholder="Select client" />
+            </SelectTrigger>
+            <SelectContent>
+              {clients.map((c) => (
+                <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      {/* G-14 FIX: Stats row */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {[
+          { icon: Cpu,        label: "Total Agents",  value: totalAgents,  color: "text-primary bg-primary/10"     },
+          { icon: Activity,   label: "Active Now",    value: activeNow,    color: "text-success bg-success/10"     },
+          { icon: ListChecks, label: "Tasks Today",   value: tasksToday,   color: "text-warning bg-warning/10"     },
+          { icon: Target,     label: "Avg Accuracy",  value: `${avgAccuracy}%`, color: "text-destructive bg-destructive/10" },
+        ].map(({ icon: Icon, label, value, color }) => (
+          <Card key={label}>
+            <CardContent className="pt-6 flex items-center gap-3">
+              <div className={`h-10 w-10 rounded-lg flex items-center justify-center ${color}`}>
+                <Icon className="h-5 w-5" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold">{value}</p>
+                <p className="text-xs text-muted-foreground">{label}</p>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
       </div>
 
       {/* Agent Cards */}
@@ -69,17 +132,17 @@ export default function Agents() {
               <CardContent className="space-y-3">
                 <p className="text-xs text-muted-foreground">{agent.description}</p>
                 <div className="flex items-center gap-2 text-xs">
-                  <StatusIcon className={`h-3.5 w-3.5 ${cfg.color} ${agent.status === 'running' ? 'animate-spin' : ''}`} />
+                  <StatusIcon className={`h-3.5 w-3.5 ${cfg.color} ${agent.status === "running" ? "animate-spin" : ""}`} />
                   <span className="capitalize">{agent.status}</span>
                   <span className="text-muted-foreground ml-auto">{agent.lastRun}</span>
                 </div>
-                {agent.status === 'running' && (
+                {agent.status === "running" && (
                   <Progress value={agent.progress} className="h-1.5" />
                 )}
                 <div className="flex gap-2 pt-1">
                   <Dialog>
                     <DialogTrigger asChild>
-                      <Button size="sm" variant="outline" className="flex-1" disabled={agent.status !== 'complete'}>
+                      <Button size="sm" variant="outline" className="flex-1" disabled={agent.status !== "complete"}>
                         <Eye className="mr-1 h-3 w-3" /> Output
                       </Button>
                     </DialogTrigger>
@@ -101,7 +164,7 @@ export default function Agents() {
                   </Dialog>
                   <Dialog>
                     <DialogTrigger asChild>
-                      <Button size="sm" variant="ghost" className="flex-1" disabled={agent.status !== 'complete'}>
+                      <Button size="sm" variant="ghost" className="flex-1" disabled={agent.status !== "complete"}>
                         <Bot className="mr-1 h-3 w-3" /> Trace
                       </Button>
                     </DialogTrigger>
@@ -109,7 +172,7 @@ export default function Agents() {
                       <DialogHeader><DialogTitle>{agent.name} — Reasoning Trace</DialogTitle></DialogHeader>
                       <div className="space-y-3 pt-2 text-sm">
                         <div className="space-y-2">
-                          {['Loaded 4 data sources', 'Applied extraction templates', 'Identified 12 key metrics', 'Cross-referenced with benchmarks', 'Generated confidence scores'].map((step, i) => (
+                          {["Loaded 4 data sources", "Applied extraction templates", "Identified 12 key metrics", "Cross-referenced with benchmarks", "Generated confidence scores"].map((step, i) => (
                             <div key={i} className="flex gap-2 items-start">
                               <div className="h-5 w-5 rounded-full bg-primary/10 flex items-center justify-center text-xs text-primary shrink-0">{i + 1}</div>
                               <p className="text-muted-foreground">{step}</p>
@@ -120,6 +183,18 @@ export default function Agents() {
                     </DialogContent>
                   </Dialog>
                 </div>
+
+                {/* G-15 FIX: FeedbackBar on completed agents */}
+                {agent.status === "complete" && (
+                  <div className="pt-1 border-t">
+                    <FeedbackBar
+                      entityType="agent_output"
+                      entityId={agent.id}
+                      agentName={agent.name}
+                      compact
+                    />
+                  </div>
+                )}
               </CardContent>
             </Card>
           );
@@ -132,14 +207,12 @@ export default function Agents() {
           <CardHeader>
             <CardTitle className="text-base">
               Live Activity Feed
-              {/* BUG 6 FIX: show which client's activity is shown */}
               <span className="ml-2 text-xs font-normal text-muted-foreground">
                 — {clients.find((c) => c.id === selectedClient)?.name}
               </span>
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3 max-h-80 overflow-auto">
-            {/* BUG 6 FIX: show filteredActivity (filtered by selectedClient) instead of all activityLog */}
             {filteredActivity.length === 0 ? (
               <p className="text-sm text-muted-foreground text-center py-4">No activity for this client yet.</p>
             ) : (
@@ -167,7 +240,7 @@ export default function Agents() {
                 <TabsTrigger value="roadmap">Roadmap</TabsTrigger>
               </TabsList>
               <TabsContent value="findings" className="mt-4 space-y-2">
-                {['Revenue declining 12% below forecast in Q1', 'Last-mile delivery costs 23% above industry average', 'Top 3 accounts represent 45% of total revenue', 'Customer satisfaction score dropped from 8.1 to 7.2'].map((f, i) => (
+                {["Revenue declining 12% below forecast in Q1", "Last-mile delivery costs 23% above industry average", "Top 3 accounts represent 45% of total revenue", "Customer satisfaction score dropped from 8.1 to 7.2"].map((f, i) => (
                   <div key={i} className="flex items-start gap-2 p-2 rounded bg-muted">
                     <span className="text-xs font-medium text-primary shrink-0">{i + 1}.</span>
                     <p className="text-sm">{f}</p>
@@ -178,7 +251,7 @@ export default function Agents() {
                 <p>3 strategy options generated. View in the client Strategy tab for detailed simulation results and accept/reject workflow.</p>
               </TabsContent>
               <TabsContent value="simulations" className="mt-4 text-sm text-muted-foreground">
-                <p>Monte Carlo simulations complete for all 3 options. Results show Option B (Technology-Led Efficiency) with highest expected ROI at 18-month horizon.</p>
+                <p>Monte Carlo simulations complete for all 3 options. Option B (Technology-Led Efficiency) shows highest expected ROI at 18-month horizon.</p>
               </TabsContent>
               <TabsContent value="roadmap" className="mt-4 text-sm text-muted-foreground">
                 <p>Implementation roadmap available after strategy acceptance. Navigate to client Strategy tab to accept an option.</p>
