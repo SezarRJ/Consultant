@@ -1,14 +1,32 @@
+// BUG 7 FIX: "Apply to client..." Select now has a functional Apply button with toast feedback.
+//            Previously selecting a client had zero effect — no button, no action, no feedback.
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useToast } from "@/hooks/use-toast";
 import { playbooks, clients } from "@/data/mockData";
-import { BookOpen, Layers, Globe, Upload, TrendingUp, FileText } from "lucide-react";
+import { BookOpen, Layers, Globe, Upload, TrendingUp, FileText, CheckCircle } from "lucide-react";
 
 export default function Knowledge() {
+  // BUG 7 FIX: track both selected client AND whether it's been applied per playbook
   const [applyClient, setApplyClient] = useState<Record<string, string>>({});
+  const [appliedPlaybooks, setAppliedPlaybooks] = useState<Record<string, string>>({});
+  const { toast } = useToast();
+
+  // BUG 7 FIX: actual apply action with toast confirmation
+  const handleApplyPlaybook = (playbookId: string, playbookTitle: string) => {
+    const clientId = applyClient[playbookId];
+    if (!clientId) return;
+    const clientName = clients.find((c) => c.id === clientId)?.name ?? "Unknown client";
+    setAppliedPlaybooks((prev) => ({ ...prev, [playbookId]: clientId }));
+    toast({
+      title: "Playbook Applied",
+      description: `"${playbookTitle}" has been applied to ${clientName}.`,
+    });
+  };
 
   return (
     <div className="space-y-6">
@@ -50,38 +68,68 @@ export default function Knowledge() {
 
         <TabsContent value="playbooks" className="mt-4">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {playbooks.map(pb => (
-              <Card key={pb.id}>
-                <CardHeader className="pb-3">
-                  <div className="flex items-center justify-between">
-                    <Badge variant="secondary" className="text-xs">{pb.category}</Badge>
-                    <span className="text-xs text-muted-foreground">Used {pb.timesUsed}x</span>
-                  </div>
-                  <CardTitle className="text-base mt-2">{pb.title}</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <p className="text-sm text-muted-foreground">{pb.description}</p>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-1">
-                      <div className="h-2 w-16 rounded-full bg-muted overflow-hidden">
-                        <div className="h-full bg-success rounded-full" style={{ width: `${pb.successRate}%` }} />
-                      </div>
-                      <span className="text-xs text-muted-foreground">{pb.successRate}% success</span>
+            {playbooks.map((pb) => {
+              const isApplied = !!appliedPlaybooks[pb.id];
+              const appliedClientName = isApplied
+                ? clients.find((c) => c.id === appliedPlaybooks[pb.id])?.name
+                : null;
+
+              return (
+                <Card key={pb.id}>
+                  <CardHeader className="pb-3">
+                    <div className="flex items-center justify-between">
+                      <Badge variant="secondary" className="text-xs">{pb.category}</Badge>
+                      <span className="text-xs text-muted-foreground">Used {pb.timesUsed}x</span>
                     </div>
-                  </div>
-                  <Select value={applyClient[pb.id] || ''} onValueChange={(v) => setApplyClient(prev => ({ ...prev, [pb.id]: v }))}>
-                    <SelectTrigger className="h-8 text-xs">
-                      <SelectValue placeholder="Apply to client..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {clients.map(c => (
-                        <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </CardContent>
-              </Card>
-            ))}
+                    <CardTitle className="text-base mt-2">{pb.title}</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <p className="text-sm text-muted-foreground">{pb.description}</p>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1">
+                        <div className="h-2 w-16 rounded-full bg-muted overflow-hidden">
+                          <div className="h-full bg-success rounded-full" style={{ width: `${pb.successRate}%` }} />
+                        </div>
+                        <span className="text-xs text-muted-foreground">{pb.successRate}% success</span>
+                      </div>
+                    </div>
+
+                    {/* BUG 7 FIX: applied state shows confirmation instead of select */}
+                    {isApplied ? (
+                      <div className="flex items-center gap-2 p-2 rounded-lg bg-success/10 text-success text-xs">
+                        <CheckCircle className="h-3.5 w-3.5 shrink-0" />
+                        <span>Applied to {appliedClientName}</span>
+                      </div>
+                    ) : (
+                      <div className="flex gap-2">
+                        <Select
+                          value={applyClient[pb.id] || ''}
+                          onValueChange={(v) => setApplyClient((prev) => ({ ...prev, [pb.id]: v }))}
+                        >
+                          <SelectTrigger className="h-8 text-xs flex-1">
+                            <SelectValue placeholder="Apply to client..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {clients.map((c) => (
+                              <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        {/* BUG 7 FIX: Apply button that actually triggers an action */}
+                        <Button
+                          size="sm"
+                          className="h-8 px-3 text-xs"
+                          disabled={!applyClient[pb.id]}
+                          onClick={() => handleApplyPlaybook(pb.id, pb.title)}
+                        >
+                          Apply
+                        </Button>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              );
+            })}
           </div>
         </TabsContent>
 

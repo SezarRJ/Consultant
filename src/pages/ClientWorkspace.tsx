@@ -191,8 +191,8 @@ export default function ClientWorkspace() {
                 <ResponsiveContainer width="100%" height={280}>
                   <LineChart data={revenueData}>
                     <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                    <XAxis dataKey="month" className="text-xs" />
-                    <YAxis className="text-xs" />
+                    <XAxis dataKey="month" tick={{ fontSize: 12 }} />
+                    <YAxis tick={{ fontSize: 12 }} />
                     <Tooltip />
                     <Line type="monotone" dataKey="actual" stroke="hsl(217, 91%, 53%)" strokeWidth={2} name="Actual" />
                     <Line type="monotone" dataKey="target" stroke="hsl(142, 72%, 36%)" strokeWidth={2} strokeDasharray="5 5" name="Target" />

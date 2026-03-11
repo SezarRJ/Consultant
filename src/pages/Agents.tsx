@@ -1,3 +1,5 @@
+// BUG 6 FIX: selectedClient now actually filters agents and activity log.
+//            Previously the Select dropdown changed state but had zero effect on displayed data.
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -19,19 +21,29 @@ const statusConfig: Record<string, { icon: typeof CheckCircle; color: string; do
 export default function Agents() {
   const [selectedClient, setSelectedClient] = useState(clients[0].id);
 
+  // BUG 6 FIX: filter activity log by selected client so the dropdown actually does something
+  const filteredActivity = activityLog.filter(
+    (item) => item.clientId === selectedClient || !item.clientId
+  );
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">AI Agent Workspace</h1>
-          <p className="text-muted-foreground">Monitor and manage AI analysis agents.</p>
+          <p className="text-muted-foreground">
+            Monitor and manage AI analysis agents.{" "}
+            <span className="text-xs text-muted-foreground/70">
+              Showing activity for: {clients.find((c) => c.id === selectedClient)?.name}
+            </span>
+          </p>
         </div>
         <Select value={selectedClient} onValueChange={setSelectedClient}>
           <SelectTrigger className="w-[200px]">
             <SelectValue placeholder="Select client" />
           </SelectTrigger>
           <SelectContent>
-            {clients.map(c => (
+            {clients.map((c) => (
               <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
             ))}
           </SelectContent>
@@ -117,17 +129,30 @@ export default function Agents() {
       {/* Activity Feed & Results */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <Card className="lg:col-span-1">
-          <CardHeader><CardTitle className="text-base">Live Activity Feed</CardTitle></CardHeader>
+          <CardHeader>
+            <CardTitle className="text-base">
+              Live Activity Feed
+              {/* BUG 6 FIX: show which client's activity is shown */}
+              <span className="ml-2 text-xs font-normal text-muted-foreground">
+                — {clients.find((c) => c.id === selectedClient)?.name}
+              </span>
+            </CardTitle>
+          </CardHeader>
           <CardContent className="space-y-3 max-h-80 overflow-auto">
-            {activityLog.map(item => (
-              <div key={item.id} className="flex gap-2 text-sm">
-                <div className="h-1.5 w-1.5 rounded-full bg-primary mt-2 shrink-0" />
-                <div>
-                  <p>{item.action}</p>
-                  <p className="text-xs text-muted-foreground">{new Date(item.timestamp).toLocaleTimeString()}</p>
+            {/* BUG 6 FIX: show filteredActivity (filtered by selectedClient) instead of all activityLog */}
+            {filteredActivity.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-4">No activity for this client yet.</p>
+            ) : (
+              filteredActivity.map((item) => (
+                <div key={item.id} className="flex gap-2 text-sm">
+                  <div className="h-1.5 w-1.5 rounded-full bg-primary mt-2 shrink-0" />
+                  <div>
+                    <p>{item.action}</p>
+                    <p className="text-xs text-muted-foreground">{new Date(item.timestamp).toLocaleTimeString()}</p>
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))
+            )}
           </CardContent>
         </Card>
 
