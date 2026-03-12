@@ -12,6 +12,7 @@ import Agents from "./pages/Agents";
 import Knowledge from "./pages/Knowledge";
 import Insights from "./pages/Insights";
 import Deliverables from "./pages/Deliverables";
+import DocumentHub from "./pages/DocumentHub";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 
