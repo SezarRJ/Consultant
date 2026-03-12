@@ -47,6 +47,7 @@ const App = () => (
               <Route path="/knowledge" element={<Knowledge />} />
               <Route path="/insights" element={<Insights />} />
               <Route path="/deliverables" element={<Deliverables />} />
+              <Route path="/documents" element={<DocumentHub />} />
               <Route path="/settings" element={<Settings />} />
             </Route>
             <Route path="*" element={<NotFound />} />

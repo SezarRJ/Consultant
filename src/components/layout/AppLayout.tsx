@@ -17,6 +17,7 @@ const getPageTitle = (pathname: string): string => {
   if (pathname === "/knowledge") return "Knowledge Base";
   if (pathname === "/insights") return "Insights";
   if (pathname === "/deliverables") return "Deliverables";
+  if (pathname === "/documents") return "Document Hub";
   if (pathname === "/settings") return "Settings";
   return "AI Consulting Brain";
 };

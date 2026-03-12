@@ -25,6 +25,7 @@ export function AppSidebar() {
     { title: t.nav_agents,       url: "/agents",       icon: Bot             },
     { title: t.nav_insights,     url: "/insights",     icon: Lightbulb       },
     { title: t.nav_deliverables, url: "/deliverables", icon: FileText        },
+    { title: "Document Hub",     url: "/documents",    icon: FolderOpen      },
     { title: t.nav_settings,     url: "/settings",     icon: Settings        },
   ];
 
