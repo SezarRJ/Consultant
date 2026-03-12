@@ -41,7 +41,7 @@ export default function Insights() {
   const unreadCount = insights.filter((i: any) => !i.isRead && !localRead.has(i.id)).length;
 
   const markAllRead = () => {
-    const allIds = new Set(insights.map((i: any) => i.id));
+    const allIds = new Set<string>(insights.map((i: any) => i.id));
     setLocalRead(allIds);
   };
 
