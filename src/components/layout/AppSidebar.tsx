@@ -1,4 +1,4 @@
-import { Brain, LayoutDashboard, Users, BookOpen, Bot, Lightbulb, FileText, Settings, Languages } from "lucide-react";
+import { Brain, LayoutDashboard, Users, BookOpen, Bot, Lightbulb, FileText, FolderOpen, Settings, Languages } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
 import { useI18n } from "@/lib/i18n";
